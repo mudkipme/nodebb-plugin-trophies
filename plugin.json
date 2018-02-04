@@ -1,8 +1,8 @@
 {
-	"id": "nodebb-plugin-trophies",
+	"id": "nodebb-plugin-trophies-updated",
 	"name": "Trophies",
 	"description": "Trophies: award badges on user profile pages. See Readme on how to install.",
-	"url": "https://github.com/toxuin/nodebb-plugin-trophies",
+	"url": "https://github.com/mudkipme/nodebb-plugin-trophies",
 	"library": "./index.js",
 	"hooks": [
 		{"hook": "static:app.load", "method": "onLoad"},
@@ -16,6 +16,5 @@
 	"templates": "./static/templates",
 	"less": [
 		"./less/style.less"
-	],
-	"compatibility": "^0.9.0"
+	]
 }

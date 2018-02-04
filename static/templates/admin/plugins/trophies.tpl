@@ -43,12 +43,7 @@
 
 			<div class="form-group">
 				<label for="trophies-image">Trophy image:</label>
-				<select name="trophies-image" id="trophies-image" class="form-control">
-				<!-- BEGIN pictures -->
-					<option value="{pictures.name}" data-imagesrc="../../plugins/nodebb-plugin-trophies/static/trophies/{pictures.name}"
-					data-description="{pictures.name}">{pictures.name}</option>
-				<!-- END pictures -->
-				</select>
+				<input type="text" name="trophies-image" id="trophies-image" class="form-control" />
 			</div>
 
 			<button type="button" id="trophies-create" class="btn btn-primary btn-lg btn-block"><i class="fa fa-save"></i> Create a trophy</button>
@@ -59,7 +54,8 @@
 		<div class="panel-heading">Trophy list</div>
 		<div class="panel-body" id="trophies-total-list">
 			<!-- BEGIN trophies -->
-			<div class="trophies-item" title="{trophies.description}" style="background-image:url('../../plugins/nodebb-plugin-trophies/static/trophies/{trophies.image}');">
+			<div class="trophies-item" title="{trophies.description}">
+				<img class="trophies-item-img" src="{trophies.image}" alt="{trophies.name}" />
 				<span class="trophies-item-name">{trophies.name}</span>
 				<button type="button" class="trophies-delete btn btn-warning btn-xs" data-trophiesid="{trophies.trophyId}"><i class="fa fa-trash"></i></button>
 			</div>
@@ -80,7 +76,7 @@
 </form>
 
 <script>
-	require(['settings'], function(Settings) {
+	require(['settings', 'autocomplete'], function(Settings) {
 		Settings.load('trophies', $('#trophies-form'));
 
 		$('#trophies-award').on('click', function(ev) {
@@ -94,6 +90,7 @@
 					app.alertError("Error: " + err.message);
 				} else {
 					app.alertSuccess("User " + data.user + " awarded!");
+					app.flags._unsaved = false;
 				}
 			});
 			//Settings.save($('#trophies-form'));
@@ -105,7 +102,7 @@
 			var data = {
 				name: $("#trophies-name").val(),
 				description: $("#trophies-description").val(),
-				image: $("#trophies-image option:selected").data()
+				image: $("#trophies-image").val()
 			}
 
 			if (data.name == "") {
@@ -114,7 +111,7 @@
 				return false;
 			}
 			if (! $("#trophies-image").val()) {
-				app.alertError("No image selected!");
+				app.alertError("Empty image!");
 				ev.preventDefault();
 				return false;
 			}
@@ -127,8 +124,9 @@
 				} else {
 					app.alertSuccess("Created a trophy!");
 					$("#trophies-name").val("");
-					$("#trophies-image option:selected").prop("selected", false).change();
+					$("#trophies-image").val("");
 					updateTrophyList();
+					app.flags._unsaved = false;
 				}
 			});
 
@@ -143,22 +141,24 @@
 			});
 		});
 
-		$("#trophies-award-user").autocomplete({
-			delay: 800,
-			minLength: 2,
-			source: function(request, response) {
-				socket.emit('admin.user.search', {query: request.term}, function(err, results) {
-					if (err || !results | results.users.length <= 0) {
-						console.log(err);
-						return;
-					}
-					var users = [];
-					results.users.forEach(function(item) {
-						users.push(item.userslug);
+		app.loadJQueryUI(function () {
+			$("#trophies-award-user").autocomplete({
+				delay: 800,
+				minLength: 2,
+				source: function(request, response) {
+					socket.emit('admin.user.search', {query: request.term}, function(err, results) {
+						if (err || !results | results.users.length <= 0) {
+							console.log(err);
+							return;
+						}
+						var users = [];
+						results.users.forEach(function(item) {
+							users.push(item.userslug);
+						});
+						response(users);
 					});
-					response(users);
-				});
-			}
+				}
+			});
 		});
 	});
 
@@ -170,8 +170,13 @@
 			$("#trophies-total-list").empty();
 			$("#trophies-award-list").empty();
 			results.forEach(function(item) {
-				$("#trophies-total-list").append("<div class=\"trophies-item\" title=\"" + item.description + "\" style=\"background-image:url('../../plugins/nodebb-plugin-trophies/static/trophies/" + item.image + "');\"><span class=\"trophies-item-name\">" + item.name + "</span><button type=\"button\" class=\"trophies-delete btn btn-warning btn-xs\" data-trophiesid=\"" + item.trophyId + "\"><i class=\"fa fa-trash\"></i></button></div>");
-				$("#trophies-award-list").append("<option value=\"" + item.name + "\" data-trophyid=\"" + item.trophyId + "\">" + item.name + "</option>");
+				$('<div />').prop('title', item.description).addClass('trophies-item')
+					.append($("<img class=\"trophies-item-img\" />").prop('src', item.image).prop('alt', item.name))
+					.append($("<span class=\"trophies-item-name\"></span>").text(item.name))
+					.append("<button type=\"button\" class=\"trophies-delete btn btn-warning btn-xs\" data-trophiesid=\"" + item.trophyId + "\"><i class=\"fa fa-trash\"></i></button>")
+					.appendTo("#trophies-total-list");
+				
+				$("#trophies-award-list").append($("<option data-trophyid=\"" + item.trophyId + "\"></option>").val(item.name).text(item.name));
 			});
 
 		});

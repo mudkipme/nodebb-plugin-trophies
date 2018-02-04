@@ -1,13 +1,9 @@
 "use strict";
 var	user = module.parent.require('./user'),
 	utils = module.parent.require('../public/src/utils'),
-	templates = module.parent.require('./meta/templates.js'),
 	SocketAdmin = module.parent.require('./socket.io/admin').plugins,
 	db = module.parent.require('./database'),
-	notifications = module.parent.require('./notifications'),
-	async = require('async'),
-	path = require('path'),
-	fs = require('fs'),
+	async = module.parent.require('async'),
 	app;
 
 var Trophies = {};
@@ -46,8 +42,7 @@ Trophies.defineWidgets = function(widgets, callback) {
             {
                 widget: "trophies",
                 name: "Trophies",
-                description: "List of your trophies",
-                content: 'admin/widgets/trophies.tpl'
+                description: "List of your trophies"
             }
 		]);
 
@@ -55,12 +50,18 @@ Trophies.defineWidgets = function(widgets, callback) {
 };
 
 Trophies.renderTrophiesWidget = function(widget, callback) {
-        if (!widget || !widget.area || !widget.area.url || !widget.area.url.startsWith("user/")) return callback();
-		var userslug = widget.area.url.replace("user/", "");
-		getTrophiesForUserslug(userslug, function(err, trophies) {
-			if (!err) app.render('widgets/trophies', {trophies: trophies}, callback);
-			else console.log(err);
+	if (!widget || !widget.area || !widget.area.templateData || !widget.area.templateData.userslug) return callback();
+	getTrophiesForUserslug(widget.area.templateData.userslug, function(err, trophies) {
+		if (err) {
+			console.log(err);
+			return;
+		}
+		app.render('widgets/trophies', {trophies: trophies}, function(err, html) {
+			if (err) return callback(err);
+			widget.html = html;
+			callback(null, widget);
 		});
+	});
 };
 
 
@@ -70,7 +71,7 @@ Trophies.renderTrophiesWidget = function(widget, callback) {
 // DO STUFF HERE
 
 Trophies.createTrophy = function(socket, data, callback) {
-	if (!data || !data.hasOwnProperty("name") || data.name == "" || !data.hasOwnProperty("image") || !data.hasOwnProperty("description") || !data.image.hasOwnProperty("description") || data.image.description == "") {
+	if (!data || !data.hasOwnProperty("name") || data.name == "" || !data.hasOwnProperty("image") || data.image == "") {
 		return callback(new Error("empty-data"));
 	}
 
@@ -81,7 +82,7 @@ Trophies.createTrophy = function(socket, data, callback) {
 			trophyId: troId,
 			name: data.name,
 			description: data.description,
-			image: data.image.description
+			image: data.image
 		};
 
 		async.parallel({
@@ -139,19 +140,6 @@ Trophies.awardTrophy = function(socket, data, callback) {
 			},
 			function(next) {
 				logTrophyEvent(socket.uid, "awarded" + (data.steal?" (stealing)":""), data.trophy, uid, next);
-			},
-			function(next) {
-				notifications.create({
-					bodyShort: 'You just got a trophy!',
-					bodyLong: "Congratulations! You just got a new trophy!",
-					nid: 'trophy_' + uid + '_' + data.trophy,
-					from: 1,
-					path: '/user/' + data.user,
-				}, function(err, notification) {
-					if (!err && notification) {
-						notifications.push(notification, uid, next);
-					}
-				});
 			}
 		], callback);
 	});
@@ -166,18 +154,6 @@ Trophies.getAllTrophies = function(socket, data, callback) {
 
 function renderAdmin(req, res, next) {
 	async.parallel({
-		pictures: function(callback) { // GET ALL PICTURES
-			var icons = [];
-			var pathToTrophiesImages = path.join(__dirname, 'static/trophies');
-			utils.walk(pathToTrophiesImages, function(err, rawIcons) {
-				rawIcons.forEach(function(icon, i) {
-					icons.push({
-						name: icon.replace(pathToTrophiesImages+"/", '')
-					});
-				});
-				callback(null, icons);
-			});
-		},
 		trophies: function(callback) { // GET ALL TROPHIES FROM DB
 			getAllTrophies(callback);
 		},
