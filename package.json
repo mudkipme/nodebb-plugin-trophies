@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-trophies-updated",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Trophies for users of NodeBB",
   "main": "library.js",
   "scripts": {
@@ -28,5 +28,8 @@
   "homepage": "https://github.com/mudkipme/nodebb-plugin-trophies",
   "nbbpm": {
     "compatibility": "^1.0.0"
+  },
+  "dependencies": {
+    "async": "^3.2.0"
   }
 }

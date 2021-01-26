@@ -1,9 +1,9 @@
 "use strict";
-var	user = module.parent.require('./user'),
-	utils = module.parent.require('../public/src/utils'),
-	SocketAdmin = module.parent.require('./socket.io/admin').plugins,
-	db = module.parent.require('./database'),
-	async = module.parent.require('async'),
+var	user = require.main.require('./src/user'),
+	utils = require.main.require('./public/src/utils'),
+	SocketAdmin = require.main.require('./src/socket.io/admin').plugins,
+	db = require.main.require('./src/database'),
+	async = require('async'),
 	app;
 
 var Trophies = {};
